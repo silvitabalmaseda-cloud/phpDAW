@@ -49,55 +49,72 @@ if (!$usuarioAutenticado) {
 }
 
 // Determinar qué anuncio mostrar basado en el ID (par o impar)
-$id = isset($_GET['id']) && ctype_digit($_GET['id']) ? intval($_GET['id']) : 1;
-$esPar = ($id % 2 == 0);
-
-if ($esPar) {
-    // Anuncio par
-    // Usar el anuncio específico (evitar duplicados)
-    $anuncio = [
-        'tipoAnuncio' => 'Alquiler',
-        'tipoVivienda' => 'Apartamento',
-        'fotoPrincipal' => 'DAW/practica/imagenes/anuncio4.jpg',
-        'titulo' => 'Apartamento en alquiler en Bilbao',
-        'precio' => '600 €/mes',
-        'texto' => 'Amplio apartamento situado a 5 minutos del centro, con vistas y todas las comodidades. Perfecto para familias o profesionales.',
-        'fecha' => '2025-09-19',
-        'ciudad' => 'Bilbao',
-        'pais' => 'España',
-        'caracteristicas' => ['80m²', '3 habitaciones', '2 baños', '2ª planta', '2015'],
-        'fotos' => ['anuncio4.jpg', 'anuncio4.jpg', 'anuncio4.jpg'],
-        'usuario' => 'Carlos Garcia'
-    ];
+// Obtener anuncio de la BD
+$id = isset($_GET['id']) && ctype_digit($_GET['id']) ? intval($_GET['id']) : 0;
+require_once __DIR__ . '/includes/conexion.php';
+$anuncio = null;
+if ($id > 0 && isset($conexion)) {
+    try {
+        $stmt = $conexion->prepare("SELECT a.IdAnuncio,
+                                          a.Titulo AS titulo,
+                                          a.FPrincipal AS fotoPrincipal,
+                                          a.Texto AS texto,
+                                          a.Precio AS precio,
+                                          a.FRegistro AS fecha,
+                                          a.Ciudad AS ciudad,
+                                          p.NomPais AS pais,
+                                          u.NomUsuario AS usuario,
+                                          ta.NomTAnuncio AS tipoAnuncio,
+                                          tv.NomTVivienda AS tipoVivienda
+                                     FROM Anuncios a
+                                     LEFT JOIN Usuarios u ON a.Usuario = u.IdUsuario
+                                     LEFT JOIN Paises p ON a.Pais = p.IdPais
+                                     LEFT JOIN TiposAnuncios ta ON a.TAnuncio = ta.IdTAnuncio
+                                     LEFT JOIN TiposViviendas tv ON a.TVivienda = tv.IdTVivienda
+                                     WHERE a.IdAnuncio = ? LIMIT 1");
+        $stmt->execute([$id]);
+        $anuncio = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($anuncio) {
+            $stmt2 = $conexion->prepare("SELECT Titulo, Foto, Alternativo FROM Fotos WHERE Anuncio = ?");
+            $stmt2->execute([$id]);
+            $fotos = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+            // normalizar para la plantilla
+            $anuncio['fotos'] = array_map(function($f){ return $f['Foto']; }, $fotos);
+            $anuncio['caracteristicas'] = [];
+            // garantizar que fotoPrincipal sea la ruta correcta (preferir practica)
+            require_once __DIR__ . '/includes/precio.php';
+            $anuncio['fotoPrincipal'] = resolve_image_url($anuncio['fotoPrincipal'] ?? '');
+        } else {
+            $fotos = [];
+        }
+    } catch (Exception $e) {
+        $anuncio = null;
+        $fotos = [];
+    }
 } else {
-    // Anuncio impar
-    // Usar el segundo anuncio (evitar duplicados)
-    $anuncio = [
-        'tipoAnuncio' => 'Venta',
-        'tipoVivienda' => 'Casa',
-        'fotoPrincipal' => 'DAW/practica/imagenes/anuncio3.jpg',
-        'titulo' => 'Casa en venta en Portugal',
-        'precio' => '150.000 €',
-        'texto' => 'Casa completamente reformado en el centro de la ciudad, con excelentes comunicaciones y cerca de todos los servicios.',
-        'fecha' => '2025-09-19',
-        'ciudad' => 'Oporto',
-        'pais' => 'España',
-        'caracteristicas' => ['80m²', '3 habitaciones', '2 baños', '2ª planta', '2015'],
-        'fotos' => ['anuncio3.jpg', 'anuncio3.jpg', 'anuncio3.jpg'],
-        'usuario' => 'Carlos Garcia'
-    ];
+    $fotos = [];
 }
 
 // --- guardar anuncio visitado ---
-
 // Comprobar que se ha recibido un id válido
-if (isset($_GET['id']) && isset($anuncio['titulo'])) {
+if ($id > 0 && $anuncio && isset($anuncio['titulo'])) {
+    require_once __DIR__ . '/includes/precio.php';
+
+    // Mantener el valor original salvo que sea claramente numérico
+    $precio_val = null;
+    if (isset($anuncio['precio'])) {
+        $rawp = $anuncio['precio'];
+        if (is_numeric($rawp)) $precio_val = (float)$rawp;
+        else $precio_val = $rawp;
+    }
+
     $visitado = [
-        'id' => intval($_GET['id']),
+        'id' => (int)$id,
         'titulo' => $anuncio['titulo'] ?? '',
         'ciudad' => $anuncio['ciudad'] ?? '',
         'pais' => $anuncio['pais'] ?? '',
-        'precio' => $anuncio['precio'] ?? '',
+        'precio' => $precio_val,
+        // fotoPrincipal ya contiene la ruta relativa (ej. DAW/imagenes/xxx) o el fallback
         'imagen' => $anuncio['fotoPrincipal'] ?? ''
     ];
 
@@ -165,8 +182,17 @@ require_once("inicioLog.inc");
             </section>
 
             <aside class="acciones">
-                <a href="anyadir_foto.php?id=<?= $id ?>" class="btn">Añadir foto a este anuncio</a>
-                <a href="mis_anuncios.php" class="btn">Volver a mis anuncios</a>
+                <?php
+                // Mostrar 'Añadir foto' solo si el usuario autenticado es el propietario del anuncio
+                $usuarioLog = $_SESSION['usuario'] ?? null;
+                $propietario = $anuncio['usuario'] ?? null;
+                if ($usuarioLog && $propietario && $usuarioLog === $propietario): ?>
+                    <a href="anyadir_foto.php?id=<?= $id ?>" class="btn">Añadir foto a este anuncio</a>
+                    <a href="mis_anuncios.php" class="btn">Volver a mis anuncios</a>
+                <?php else: ?>
+                    <a href="mensaje.php?anuncio=<?= $id ?>" class="btn">Enviar mensaje al anunciante</a>
+                    <a href="index.php" class="btn">Volver al inicio</a>
+                <?php endif; ?>
             </aside>
         </section>
     </section>

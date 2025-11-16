@@ -35,10 +35,19 @@ function validarMensaje(event) {
     document.querySelectorAll('.campo-error').forEach(e => e.classList.remove('campo-error'));
     
 
-    // Tipo de mensaje
-    const radios = document.getElementsByName("tipo_mensaje");
-    if (!Array.from(radios).some(r => r.checked)) {
-        mostrarErrorCampo(radios, "Debes seleccionar un tipo de mensaje.");
+    // Tipo de mensaje: admitir tanto <select name="tipo_mensaje"> como radios
+    const controlesTipo = document.getElementsByName("tipo_mensaje");
+    let tipoOk = false;
+    if (controlesTipo.length > 0) {
+        const first = controlesTipo[0];
+        if (first.tagName === 'SELECT') {
+            tipoOk = first.value !== '' && first.value !== null;
+        } else {
+            tipoOk = Array.from(controlesTipo).some(r => r.checked);
+        }
+    }
+    if (!tipoOk) {
+        mostrarErrorCampo(controlesTipo, "Debes seleccionar un tipo de mensaje.");
         ok = false;
     }
 
@@ -63,7 +72,7 @@ function load() {
 
     // Radios para "tipo_mensaje"
     const contenedor = document.querySelector("p.tipo-mensaje");
-    if (contenedor && !contenedor.querySelector('input[name="tipo_mensaje"]')) {
+    if (contenedor && !contenedor.querySelector('[name="tipo_mensaje"]')) {
         const opciones = [
             { valor: "mas informacion", texto: " Más información" },
             { valor: "solicitar cita", texto: " Solicitar cita" },

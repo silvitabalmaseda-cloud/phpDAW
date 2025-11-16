@@ -19,7 +19,14 @@
             </a></li>
         <li class="perfil">
             <a href="miperfil.php">
-                <img src="DAW/practica/imagenes/default-avatar-profile-icon-vector-260nw-1909596082.webp" alt="Foto de perfil"class="perfil-foto">
+                <?php
+                require_once __DIR__ . '/includes/precio.php';
+                $avatar = 'DAW/practica/imagenes/default-avatar-profile-icon-vector-260nw-1909596082.webp';
+                if (isset($_SESSION['foto']) && $_SESSION['foto'] !== '') {
+                    $avatar = resolve_image_url($_SESSION['foto']);
+                }
+                ?>
+                <img src="<?= htmlspecialchars($avatar, ENT_QUOTES, 'UTF-8') ?>" alt="Foto de perfil" class="perfil-foto">
                 <?php
                 if (isset($_SESSION['usuario'])) {
                     echo htmlspecialchars($_SESSION['usuario']);

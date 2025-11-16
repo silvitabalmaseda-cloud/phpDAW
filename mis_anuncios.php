@@ -1,110 +1,41 @@
 <?php
-$title = "Mi Perfil - PI Pisos & Inmuebles";
+$title = "Mis Anuncios - PI Pisos & Inmuebles";
 $cssPagina = "resultados.css";
 require_once("cabecera.inc");
 require_once(__DIR__ . '/privado.inc');
 require_once("inicioLog.inc");
+require_once __DIR__ . '/includes/conexion.php';
+require_once __DIR__ . '/includes/precio.php';
+
+$userId = $_SESSION['id'] ?? null;
+$anuncios = [];
+if ($userId && isset($conexion)) {
+    $stmt = $conexion->prepare('SELECT IdAnuncio, Titulo, FPrincipal, FRegistro, Ciudad, Precio FROM Anuncios WHERE Usuario = ? ORDER BY FRegistro DESC');
+    $stmt->execute([$userId]);
+    $anuncios = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 ?>
 
 <main>
-
   <section>
+    <?php if (empty($anuncios)): ?>
+        <p>No has publicado anuncios todavía.</p>
+    <?php else: ?>
+        <?php foreach ($anuncios as $a): ?>
+            <article>
+                <h2><?= htmlspecialchars($a['Titulo'] ?: 'Sin título') ?></h2>
+                <a href="anuncio.php?id=<?= $a['IdAnuncio'] ?>">
+                    <?php $imgPath = resolve_image_url($a['FPrincipal'] ?? ''); ?>
+                    <img src="<?= $imgPath ?>" alt="Foto" width="200" height="200">
+                </a>
+                <p><strong>Ciudad:</strong> <?= htmlspecialchars($a['Ciudad'] ?: '—') ?></p>
+                <p><strong>Fecha:</strong> <?= htmlspecialchars($a['FRegistro']) ?></p>
+                <p><strong>Precio:</strong> <?= $a['Precio'] !== null ? number_format((float)$a['Precio'],2,',','.') . ' €' : '—' ?></p>
+                <p><a href="modificar_anuncio.php?id=<?= $a['IdAnuncio'] ?>">Editar</a> | <a href="borrar_anuncio.php?id=<?= $a['IdAnuncio'] ?>">Borrar</a></p>
+            </article>
+        <?php endforeach; ?>
+    <?php endif; ?>
 
-    <article>
-      <h2>Título del anuncio</h2>
-    <a href="anuncio.php?id=1">
-        <img src="DAW/practica/imagenes/anuncio2.jpg" 
-             alt="Foto del anuncio 2" width="200" height="200">
-    </a>
-      
-      <?php
-      // --- Recuperar valores enviados por GET ---
-      $tipoAnuncio = isset($_GET["tipo-anuncio"]) ? $_GET["tipo-anuncio"] : "";
-      $vivienda = isset($_GET["vivienda"]) ? $_GET["vivienda"] : "";
-      $ciudad = isset($_GET["ciudad"]) ? $_GET["ciudad"] : "";
-      $pais = isset($_GET["pais"]) ? $_GET["pais"] : "";
-      $precioMin = isset($_GET["precio_min"]) ? $_GET["precio_min"] : "";
-      $precioMax = isset($_GET["precio_max"]) ? $_GET["precio_max"] : "";
-      $fechaDesde = isset($_GET["fecha_desde"]) ? $_GET["fecha_desde"] : "";
-      $fechaHasta = isset($_GET["fecha_hasta"]) ? $_GET["fecha_hasta"] : "";
-
-      $nombrePais = ($pais != "") ? ucfirst($pais) : "No especificado";
-
-      // --- Tipo de vivienda ---
-      $nombreVivienda = ($vivienda != "") ? ucfirst($vivienda) : "No especificado";
-      ?>
-
-      <p><strong>TIPO DE VIVIENDA:</strong> <?= $nombreVivienda ?></p>
-      <p><strong>CIUDAD:</strong> <?= $ciudad != "" ? htmlspecialchars($ciudad) : "No especificada" ?></p>
-      <p><strong>PAÍS:</strong> <?= $nombrePais ?></p>
-      <p><strong>FECHA:</strong> <?= $fechaDesde ?> y <?= $fechaHasta ?></p>
-      <p><strong>PRECIO:</strong> <?= $precioMin ?> € y <?= $precioMax ?> €</p>
-
-    </article>
-
-    <article>
-      <h2>Título del anuncio</h2>
-    <a href="anuncio.php?id=2">
-        <img src="DAW/practica/imagenes/consejos-para-vender-un-piso-en-madrid-01.jpg" 
-             alt="Foto del anuncio 2" width="200" height="200">
-    </a>
-      
-      <?php
-      // --- Recuperar valores enviados por GET ---
-      $tipoAnuncio = isset($_GET["tipo-anuncio"]) ? $_GET["tipo-anuncio"] : "";
-      $vivienda = isset($_GET["vivienda"]) ? $_GET["vivienda"] : "";
-      $ciudad = isset($_GET["ciudad"]) ? $_GET["ciudad"] : "";
-      $pais = isset($_GET["pais"]) ? $_GET["pais"] : "";
-      $precioMin = isset($_GET["precio_min"]) ? $_GET["precio_min"] : "";
-      $precioMax = isset($_GET["precio_max"]) ? $_GET["precio_max"] : "";
-      $fechaDesde = isset($_GET["fecha_desde"]) ? $_GET["fecha_desde"] : "";
-      $fechaHasta = isset($_GET["fecha_hasta"]) ? $_GET["fecha_hasta"] : "";
-
-      $nombrePais = ($pais != "") ? ucfirst($pais) : "No especificado";
-
-      // --- Tipo de vivienda ---
-      $nombreVivienda = ($vivienda != "") ? ucfirst($vivienda) : "No especificado";
-      ?>
-
-      <p><strong>TIPO DE VIVIENDA:</strong> <?= $nombreVivienda ?></p>
-      <p><strong>CIUDAD:</strong> <?= $ciudad != "" ? htmlspecialchars($ciudad) : "No especificada" ?></p>
-      <p><strong>PAÍS:</strong> <?= $nombrePais ?></p>
-      <p><strong>FECHA:</strong> <?= $fechaDesde ?> y <?= $fechaHasta ?></p>
-      <p><strong>PRECIO:</strong> <?= $precioMin ?> € y <?= $precioMax ?> €</p>
-
-    </article>
-
-    <article>
-      <h2>Título del anuncio</h2>
-  <a href="anuncio.php?id=1">
-        <img src="DAW/practica/imagenes/anuncio2.jpg" 
-             alt="Foto del anuncio 2" width="200" height="200">
-      </a>
-      
-      <?php
-      // --- Recuperar valores enviados por GET ---
-      $tipoAnuncio = isset($_GET["tipo-anuncio"]) ? $_GET["tipo-anuncio"] : "";
-      $vivienda = isset($_GET["vivienda"]) ? $_GET["vivienda"] : "";
-      $ciudad = isset($_GET["ciudad"]) ? $_GET["ciudad"] : "";
-      $pais = isset($_GET["pais"]) ? $_GET["pais"] : "";
-      $precioMin = isset($_GET["precio_min"]) ? $_GET["precio_min"] : "";
-      $precioMax = isset($_GET["precio_max"]) ? $_GET["precio_max"] : "";
-      $fechaDesde = isset($_GET["fecha_desde"]) ? $_GET["fecha_desde"] : "";
-      $fechaHasta = isset($_GET["fecha_hasta"]) ? $_GET["fecha_hasta"] : "";
-
-      $nombrePais = ($pais != "") ? ucfirst($pais) : "No especificado";
-
-      // --- Tipo de vivienda ---
-      $nombreVivienda = ($vivienda != "") ? ucfirst($vivienda) : "No especificado";
-      ?>
-
-      <p><strong>TIPO DE VIVIENDA:</strong> <?= $nombreVivienda ?></p>
-      <p><strong>CIUDAD:</strong> <?= $ciudad != "" ? htmlspecialchars($ciudad) : "No especificada" ?></p>
-      <p><strong>PAÍS:</strong> <?= $nombrePais ?></p>
-      <p><strong>FECHA:</strong> <?= $fechaDesde ?> y <?= $fechaHasta ?></p>
-      <p><strong>PRECIO:</strong> <?= $precioMin ?> € y <?= $precioMax ?> €</p>
-
-    </article>
   </section>
 
 

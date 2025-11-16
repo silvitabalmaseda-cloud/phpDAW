@@ -89,12 +89,20 @@ if ($esPar) {
 
 // Comprobar que se ha recibido un id válido
 if (isset($_GET['id']) && isset($anuncio['titulo'])) {
+    require_once __DIR__ . '/includes/precio.php';
+    $precio_val = null;
+    if (isset($anuncio['precio'])) {
+        $rawp = $anuncio['precio'];
+        if (is_numeric($rawp)) $precio_val = (float)$rawp;
+        else $precio_val = $rawp;
+    }
+
     $visitado = [
-        'id' => intval($_GET['id']),
+        'id' => isset($_GET['id']) ? intval($_GET['id']) : 0,
         'titulo' => $anuncio['titulo'] ?? '',
         'ciudad' => $anuncio['ciudad'] ?? '',
         'pais' => $anuncio['pais'] ?? '',
-        'precio' => $anuncio['precio'] ?? '',
+        'precio' => $precio_val,
         'imagen' => $anuncio['fotoPrincipal'] ?? ''
     ];
 

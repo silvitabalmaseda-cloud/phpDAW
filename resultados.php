@@ -96,50 +96,79 @@ if (!empty($errors)) {
 
 require_once("cabecera.inc");
 require_once("inicioLog.inc");
+require_once __DIR__ . '/includes/conexion.php';
+require_once __DIR__ . '/includes/precio.php';
 ?>
 
 <main>
     <h2>Resultados de la búsqueda</h2>
     <section>
-        <article>
-            <h2>Anuncio 1</h2>
-            <a href="anuncio.php?id=1">
-                <img src="DAW/practica/imagenes/consejos-para-vender-un-piso-en-madrid-01.jpg"
-                     alt="Foto del anuncio 1" width="200" height="200">
-            </a>
+        <?php
+        // Construir consulta dinámica
+        $sql = "SELECT a.IdAnuncio, a.Titulo, a.FPrincipal, a.FRegistro, a.Ciudad, p.NomPais, a.Precio
+                FROM Anuncios a
+                LEFT JOIN Paises p ON a.Pais = p.IdPais
+                WHERE 1";
+        $params = [];
 
-            <p><strong>TIPO DE ANUNCIO:</strong> <?= ucfirst($old['tipo_anuncio']); ?></p>
-            <p><strong>TIPO DE VIVIENDA:</strong> <?= $old['vivienda'] ? ucfirst($old['vivienda']) : 'No especificada'; ?></p>
-            <p><strong>CIUDAD:</strong> <?= $old['ciudad'] ? htmlspecialchars($old['ciudad']) : 'No especificada'; ?></p>
-            <p><strong>PAÍS:</strong> <?= $old['pais'] ? strtoupper(htmlspecialchars($old['pais'])) : 'No especificado'; ?></p>
-            <p><strong>FECHA PUBLICACIÓN:</strong>
-                <?= $old['fecha_desde'] ?: '—'; ?> a <?= $old['fecha_hasta'] ?: '—'; ?>
-            </p>
-            <p><strong>PRECIO:</strong>
-                <?= $old['precio_min'] !== '' ? htmlspecialchars($old['precio_min']) . ' €' : '—'; ?>
-                <?php if ($old['precio_max'] !== ''): ?> - <?= htmlspecialchars($old['precio_max']) . ' €'; endif; ?>
-            </p>
-        </article>
+        if ($old['tipo_anuncio'] !== '') {
+            $sql .= " AND a.TAnuncio = ?";
+            $params[] = $old['tipo_anuncio'];
+        }
+        if ($old['vivienda'] !== '') {
+            $sql .= " AND a.TVivienda = ?";
+            $params[] = $old['vivienda'];
+        }
+        if ($old['ciudad'] !== '') {
+            // Usar búsqueda insensible a mayúsculas
+            $sql .= " AND LOWER(a.Ciudad) LIKE ?";
+            $params[] = '%' . mb_strtolower($old['ciudad']) . '%';
+        }
+        if ($old['pais'] !== '') {
+            $sql .= " AND a.Pais = ?";
+            $params[] = $old['pais'];
+        }
+        if ($old['precio_min'] !== '') {
+            $sql .= " AND a.Precio >= ?";
+            $params[] = $old['precio_min'];
+        }
+        if ($old['precio_max'] !== '') {
+            $sql .= " AND a.Precio <= ?";
+            $params[] = $old['precio_max'];
+        }
+        if ($old['fecha_desde'] !== '') {
+            $sql .= " AND a.FRegistro >= ?";
+            $params[] = $old['fecha_desde'];
+        }
+        if ($old['fecha_hasta'] !== '') {
+            $sql .= " AND a.FRegistro <= ?";
+            $params[] = $old['fecha_hasta'] . ' 23:59:59';
+        }
 
-        <article>
-            <h2>Anuncio 2</h2>
-            <a href="anuncio.php?id=2">
-                <img src="DAW/practica/imagenes/anuncio2.jpg"
-                     alt="Foto del anuncio 2" width="200" height="200">
-            </a>
+        $sql .= " ORDER BY a.FRegistro DESC";
 
-            <p><strong>TIPO DE ANUNCIO:</strong> <?= ucfirst($old['tipo_anuncio']); ?></p>
-            <p><strong>TIPO DE VIVIENDA:</strong> <?= $old['vivienda'] ? ucfirst($old['vivienda']) : 'No especificada'; ?></p>
-            <p><strong>CIUDAD:</strong> <?= $old['ciudad'] ? htmlspecialchars($old['ciudad']) : 'No especificada'; ?></p>
-            <p><strong>PAÍS:</strong> <?= $old['pais'] ? strtoupper(htmlspecialchars($old['pais'])) : 'No especificado'; ?></p>
-            <p><strong>FECHA PUBLICACIÓN:</strong>
-                <?= $old['fecha_desde'] ?: '—'; ?> a <?= $old['fecha_hasta'] ?: '—'; ?>
-            </p>
-            <p><strong>PRECIO:</strong>
-                <?= $old['precio_min'] !== '' ? htmlspecialchars($old['precio_min']) . ' €' : '—'; ?>
-                <?php if ($old['precio_max'] !== ''): ?> - <?= htmlspecialchars($old['precio_max']) . ' €'; endif; ?>
-            </p>
-        </article>
+        try {
+            $stmt = $conexion->prepare($sql);
+            $stmt->execute($params);
+            $resultados = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            $resultados = [];
+        }
+
+        if (empty($resultados)) {
+            echo '<p>No se han encontrado anuncios que cumplan los filtros.</p>';
+        } else {
+            foreach ($resultados as $r) {
+                // resolver imagen principal prefiriendo carpeta practica
+                $img = resolve_image_url($r['FPrincipal'] ?? '');
+                $titulo = htmlspecialchars($r['Titulo'] ?: 'Sin título');
+                $ciudad = htmlspecialchars($r['Ciudad'] ?: '—');
+                $pais = htmlspecialchars($r['NomPais'] ?: '—');
+                $precio = $r['Precio'] !== null ? number_format((float)$r['Precio'], 2, ',', '.') . ' €' : '—';
+                echo "<article><h2><a href=\"anuncio.php?id={$r['IdAnuncio']}\">{$titulo}</a></h2><a href=\"anuncio.php?id={$r['IdAnuncio']}\"><img src=\"{$img}\" alt=\"{$titulo}\" width=\"200\"></a><p><strong>Ciudad:</strong> {$ciudad} | <strong>País:</strong> {$pais} | <strong>Precio:</strong> {$precio}</p></article>";
+            }
+        }
+        ?>
     </section>
 
     <?php require_once("salto.inc"); ?>

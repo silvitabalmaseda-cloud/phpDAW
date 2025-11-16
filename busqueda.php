@@ -110,9 +110,19 @@ require_once("inicioLog.inc");
                 <select id="vivienda" name="vivienda">
                     <option value="">Seleccione un tipo de vivienda</option>
                     <?php
-                    $tipos = ["obra-nueva"=>"Obra nueva","vivienda"=>"Vivienda","oficina"=>"Oficina","local"=>"Local","garaje"=>"Garaje"];
-                    foreach ($tipos as $valor => $texto) {
-                        $sel = ($valores["vivienda"] === $valor) ? "selected" : "";
+                    // Cargar tipos de vivienda desde BD
+                    $tiposV = [];
+                    try {
+                        if (!isset($conexion)) require_once __DIR__ . '/includes/conexion.php';
+                        $rs2 = $conexion->query('SELECT IdTVivienda, NomTVivienda FROM TiposViviendas ORDER BY NomTVivienda');
+                        $tiposV = $rs2->fetchAll(PDO::FETCH_ASSOC);
+                    } catch (Exception $e) {
+                        $tiposV = [];
+                    }
+                    foreach ($tiposV as $t) {
+                        $valor = $t['IdTVivienda'];
+                        $texto = htmlspecialchars($t['NomTVivienda']);
+                        $sel = ($valores["vivienda"] == $valor) ? "selected" : "";
                         echo "<option value='$valor' $sel>$texto</option>";
                     }
                     ?>
@@ -130,11 +140,21 @@ require_once("inicioLog.inc");
                 <select id="pais" name="pais">
                     <option value="">Seleccione un país</option>
                     <?php
-                    $paises = ["de"=>"Alemania","es"=>"España","fr"=>"Francia","it"=>"Italia","pt"=>"Portugal"];
-                    foreach ($paises as $valor => $texto) {
-                        $sel = ($valores["pais"] === $valor) ? "selected" : "";
-                        echo "<option value='$valor' $sel>$texto</option>";
-                    }
+                                        // Cargar países desde la BD
+                                        $paisesDb = [];
+                                        try {
+                                            require_once __DIR__ . '/includes/conexion.php';
+                                            $rs = $conexion->query('SELECT IdPais, NomPais FROM Paises ORDER BY NomPais');
+                                            $paisesDb = $rs->fetchAll(PDO::FETCH_ASSOC);
+                                        } catch (Exception $e) {
+                                            $paisesDb = [];
+                                        }
+                                        foreach ($paisesDb as $p) {
+                                            $valor = $p['IdPais'];
+                                            $texto = htmlspecialchars($p['NomPais']);
+                                            $sel = ($valores["pais"] == $valor) ? "selected" : "";
+                                            echo "<option value='$valor' $sel>$texto</option>";
+                                        }
                     ?>
                 </select>
             </p>

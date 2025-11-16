@@ -12,7 +12,7 @@ require_once("inicioLog.inc");
     </section>
 
     <section>
-        <form id="formNuevoAnuncio" action="procesar_nuevo_anuncio.php" enctype="multipart/form-data">
+        <form id="formNuevoAnuncio" action="procesar_nuevo_anuncio.php" method="post" enctype="multipart/form-data">
             <fieldset>
                 <legend>Tipo de anuncio</legend>
                 <label><input type="radio" name="tipo_anuncio" value="venta" checked> Venta</label>
@@ -56,10 +56,7 @@ require_once("inicioLog.inc");
                 <input type="number" id="precio" name="precio" step="0.01">
             </p>
 
-            <p>
-                <label for="fecha_publicacion">Fecha de publicación:</label><br>
-                <input type="date" id="fecha_publicacion" name="fecha_publicacion">
-            </p>
+            <!-- Fecha de publicación se asigna automáticamente -->
 
             <p>
                 <label for="descripcion">Descripción:</label><br>
@@ -95,10 +92,7 @@ require_once("inicioLog.inc");
                 <input type="file" id="imagenes" name="imagenes[]" accept="image/*" multiple>
             </p>
 
-            <p>
-                <label for="usuario">Usuario (nombre):</label><br>
-                <input type="text" id="usuario" name="usuario">
-            </p>
+            <!-- Usuario se toma de la sesión, no se solicita en el formulario -->
 
             <p>
                 <button type="submit">PUBLICAR ANUNCIO</button>
